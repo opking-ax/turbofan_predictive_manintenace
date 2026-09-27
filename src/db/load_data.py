@@ -3,10 +3,9 @@ from pathlib import Path
 
 from db.db_utils import get_connection
 
+
 def load_subset(dataset_subset: str, train_file: Path, test_file: Path, rul_file: Path):
-
     """Loads one C-MAPSS subset into `engine`/`cycles`"""
-
     train_raw = read_whitesapce_delimited(train_file)
     test_raw = read_whitesapce_delimited(test_file)
 
@@ -18,14 +17,7 @@ def load_subset(dataset_subset: str, train_file: Path, test_file: Path, rul_file
         try:
             cursor = conn.cursor()
             _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
-            test_units = test_raw["unit_number"].unique()
-            assert len(rul_truth) == len(test_units), (
-                f"RUL file has {len(rul_truth)} rows but test has "
-                f"{len(test_units)} engine. These must match 1:1, "
-                "in order, or labels will be silently mismatched."
-            )
-
-            _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
+            assert_positional_order(dataset_subset, test_raw, rul_truth)
 
         except Exception as e:
             print(e)
@@ -103,3 +95,18 @@ def read_whitesapce_delimited(filepath):
     df = pd.read_csv(filepath, sep=r"\s+", header=None, skipinitialspace=True, names=columns)
     df = df.dropna(axis=1, how="all")
     return df
+
+
+def assert_positional_order(subset, test_raw, rul_truth):
+    test_units = test_raw["unit_number"].unique()
+    assert len(rul_truth) == len(test_units), (
+        f"RUL file has {len(rul_truth)} rows but test has "
+        f"{len(test_units)} engine. These must match 1:1, "
+        "in order, or labels will be silently mismatched."
+    )
+
+    expected_units = list(test_units)
+    assert expected_units == sorted(expected_units), (
+        f"{subset}: test units numbers are not in positional order"
+        f"{expected_units}"
+    )

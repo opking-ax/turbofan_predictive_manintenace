@@ -1,7 +1,10 @@
 import pandas as pd
+from pathlib import Path
 
+from db.db_utils import get_connection
 
-def load_subset(dataset_subset, train_file, test_file, rul_file, engine):
+def load_subset(dataset_subset: str, train_file: Path, test_file: Path, rul_file: Path):
+
     """Loads one C-MAPSS subset into `engine`/`cycles`"""
 
     train_raw = read_whitesapce_delimited(train_file)
@@ -11,26 +14,21 @@ def load_subset(dataset_subset, train_file, test_file, rul_file, engine):
 
     inserted_row = []
 
-    conn = engine.raw_connection()
-    try:
-        cursor = conn.cursor()
-        _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
+    with get_connection() as conn:
+        try:
+            cursor = conn.cursor()
+            _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
+            test_units = test_raw["unit_number"].unique()
+            assert len(rul_truth) == len(test_units), (
+                f"RUL file has {len(rul_truth)} rows but test has "
+                f"{len(test_units)} engine. These must match 1:1, "
+                "in order, or labels will be silently mismatched."
+            )
 
-        test_units = test_raw["unit_number"].unique()
-        assert len(rul_truth) == len(test_units), (
-            f"RUL file has {len(rul_truth)} rows but test has "
-            f"{len(test_units)} engine. These must match 1:1, "
-            "in order, or labels will be silently mismatched."
-        )
+            _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
 
-        _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
-
-        conn.commit()
-
-    finally:
-        cursor.close()
-        conn.close()
-
+        except Exception as e:
+            print(e)
 
     return pd.DataFrame(inserted_row)
 

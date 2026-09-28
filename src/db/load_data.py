@@ -16,8 +16,8 @@ def load_subset(dataset_subset: str, train_file: Path, test_file: Path, rul_file
     with get_connection() as conn:
         try:
             cursor = conn.cursor()
-            _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
             assert_positional_order(dataset_subset, test_raw, rul_truth)
+            _load_split(cursor, dataset_subset, "train", train_raw, inserted_row, rul_by_unit=None)
 
         except Exception as e:
             print(e)

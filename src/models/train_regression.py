@@ -1,7 +1,7 @@
 from db.db_utils import get_connection, log_metrics, write_predictions, save_model_artifact
 from psycopg2.extras import Json
 from sklearn.model_selection import GroupKFold
-from .metrics import phm08_score, compute_regression_metrics
+from .metrics import compute_regression_metrics
 import numpy as np
 import pandas as pd
 import argparse
